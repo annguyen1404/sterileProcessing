@@ -25,7 +25,7 @@ COLOR_PEAK = COLOR_TEXT                          # detected peak - bright highli
 COLOR_TROUGH = "rgba(233, 233, 233, 0.5)"        # baseline anchor points
 COLOR_BASELINE = "rgba(233, 233, 233, 0.55)"     # baseline segment
 
-st.set_page_config(page_title="I made this app for Rowan to do science", layout="wide")
+st.set_page_config(page_title="Sterile Processing", layout="wide")
 
 st.markdown(
     f"""
@@ -69,7 +69,7 @@ def banner(html_content: str) -> None:
 
 st.markdown(
     f"""
-    <h1 style="font-size: 2.025rem; margin-bottom: 0;">I made this app for Rowan Ives to do science</h1>
+    <h1 style="font-size: 2.025rem; margin-bottom: 0;">Sterile Processing</h1>
     <p style="margin-top: 0; margin-bottom: 0.5rem; font-size: 0.875rem; color: rgba(233, 233, 233, 0.6);">
         Time-series signal peak detection, dynamic baselining, and net AUC analysis.
     </p>
