@@ -81,26 +81,6 @@ with st.sidebar:
     st.header("1. Data")
     uploaded_file = st.file_uploader("Upload .xlsx or .csv", type=["xlsx", "csv"])
 
-    st.header("2. Peak detection")
-    prominence_pct = st.slider(
-        "Peak sensitivity (min prominence, % of signal range)",
-        min_value=1, max_value=50, value=8, step=1,
-        help="Lower values detect smaller/noisier peaks; higher values only detect dominant peaks.",
-    )
-    distance = st.slider(
-        "Minimum spacing between peaks/troughs (samples)",
-        min_value=1, max_value=20, value=2, step=1,
-    )
-    boundary_pct = st.slider(
-        "Peak Boundary Sensitivity (Noise Cutoff, % of peak prominence)",
-        min_value=1, max_value=50, value=10, step=1,
-        help=(
-            "How far the signal must decay back toward its local floor before a peak's "
-            "start/end boundary is placed there. Lower values push the boundary further "
-            "out (wider AUC window); higher values pull it in tighter around the apex."
-        ),
-    )
-
 if uploaded_file is None:
     banner("Upload a time-series file to begin. Expected: a 'time' column plus one column per experimental condition.")
     st.stop()
@@ -125,9 +105,50 @@ banner(
 )
 
 with st.sidebar:
-    st.header("3. Columns to plot")
+    st.header("2. Conditions")
     st.caption("Pick which experimental condition column(s) to analyze.")
     chosen_cols = st.multiselect("Experimental conditions", options=signal_cols, default=[])
+
+    st.header("3. Sensitivity")
+    st.caption("Peak detection")
+    prominence_pct = st.slider(
+        "Peak Detection: sensitivity (min prominence, % of signal range)",
+        min_value=1, max_value=50, value=8, step=1,
+        help="Lower values detect smaller/noisier peaks; higher values only detect dominant peaks.",
+    )
+    distance = st.slider(
+        "Peak Detection: minimum spacing between peaks/troughs (samples)",
+        min_value=1, max_value=20, value=2, step=1,
+    )
+    st.caption("Slope detection")
+    boundary_pct = st.slider(
+        "Slope Detection: noise cutoff fallback (% of peak prominence)",
+        min_value=1, max_value=50, value=10, step=1,
+        help=(
+            "Fallback used only if the slope never flattens: how far the signal must "
+            "decay back toward its local floor before a peak's start/end boundary is "
+            "placed there. Lower values push the boundary further out (wider AUC "
+            "window); higher values pull it in tighter around the apex."
+        ),
+    )
+    slope_sensitivity_pct = st.slider(
+        "Slope Detection: flatness sensitivity (% of local max slope)",
+        min_value=1, max_value=50, value=10, step=1,
+        help=(
+            "Maximum dy/dt (relative to this peak side's steepest slope) still "
+            "considered 'flat'/back-to-baseline. Lower values demand a flatter "
+            "slope before placing the boundary; higher values accept more slope."
+        ),
+    )
+    flat_window = st.slider(
+        "Slope Detection: flatness duration (consecutive samples)",
+        min_value=2, max_value=30, value=5, step=1,
+        help=(
+            "How many consecutive samples must all stay within the slope "
+            "sensitivity before the boundary is committed. Higher values require "
+            "a longer settled run, guarding against momentary flat-looking noise."
+        ),
+    )
 
 if not chosen_cols:
     banner("Select at least one column from the sidebar to view its analysis.")
@@ -152,7 +173,12 @@ for col in chosen_cols:
     prominence = max(y_range * (prominence_pct / 100.0), 1e-9)
 
     peak_idx, trough_idx = detect_peaks_and_troughs(y, prominence=prominence, distance=distance)
-    peaks = analyze_peaks(x, y, peak_idx, trough_idx, boundary_threshold=boundary_pct / 100.0)
+    peaks = analyze_peaks(
+        x, y, peak_idx, trough_idx,
+        boundary_threshold=boundary_pct / 100.0,
+        slope_sensitivity=slope_sensitivity_pct / 100.0,
+        min_flat_window=flat_window,
+    )
 
     st.subheader(col)
 
